@@ -9,7 +9,7 @@
 #define debug(M, ...)
 #else
 #define debug(M, ...) fprintf(stderr,                      \
-							  "DEBUG: %s:%d: %s: " M "\n", \
+							  "[DEBUG] (%s:%d: %s) " M "\n", \
 							  __FILE__, __LINE__, __func__, ##__VA_ARGS__)
 #endif
 

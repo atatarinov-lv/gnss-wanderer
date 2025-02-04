@@ -1,6 +1,8 @@
 LIBRARY_NAME := gnss-wanderer
 
-CFLAGS = -g -O2 -Wall -Wextra -Isrc -rdynamic -DNDEBUG $(OPTFLAGS)
+M_CFLAGS = -g -Wall -Wextra -Isrc -lm -latomic
+
+CFLAGS = $(M_CFLAGS) -O2 -rdynamic -DNDEBUG $(OPTFLAGS)
 LIBS = -ldl $(OPTLIBS)
 PREFIX ?= /usr/local
 
@@ -19,7 +21,7 @@ BIN_TARGET = bin/$(LIBRARY_NAME)
 # The Target Build
 all: $(TARGET) $(SO_TARGET) tests $(BIN_TARGET)
 
-dev: CFLAGS = -g -Wall -Wextra -Isrc $(OPTFLAGS)
+dev: CFLAGS = $(M_CFLAGS) $(OPTFLAGS)
 dev: all
 
 $(TARGET): CFLAGS += -fPIC
@@ -59,3 +61,6 @@ install: all
 check:
 	@echo Files with potentially dangerous functions:
 	@grep -E '[^_.>a-zA-Z0-9](str(n?cpy|n?cat|xfrm|n?dup|str|pbrk|tok|_)|stpn?cpy|a?sn?printf|byte_)' $(SOURCES) || echo "None found"
+
+cc-info:
+	@echo "CC: " $(CC)

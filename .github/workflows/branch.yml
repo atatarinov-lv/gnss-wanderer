@@ -1,0 +1,16 @@
+name: BranchWorkflow
+
+on:
+  push:
+    branches-ignore: [main]
+
+jobs:
+  test:
+    name: TestStage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build + Test
+        run: make

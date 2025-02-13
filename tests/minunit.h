@@ -8,11 +8,11 @@
 
 #define mu_suite_start() char *message = NULL
 
-#define mu_assert(test, message) \
-    if (!(test))                 \
-    {                            \
-        log_err(message);        \
-        return message;          \
+#define mu_assert(test, message, ...)     \
+    if (!(test))                          \
+    {                                     \
+        log_warn(message, ##__VA_ARGS__); \
+        return message;                   \
     }
 
 #define mu_run_test(test)          \

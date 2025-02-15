@@ -41,7 +41,7 @@ build:
 .PHONY: tests
 tests:
 	for i in $(TESTS) ; do \
-		$(CC) $(CFLAGS) -o $$i $$i.c $(TARGET) ;\
+		$(CC) $(CFLAGS) $(TEST_OPTFLAGS) -o $$i $$i.c $(TARGET) ;\
 	done
 	sh ./tests/runtests.sh
 

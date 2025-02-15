@@ -7,21 +7,20 @@
 
 #define MIN_GNSS_PUMPING_INTERVAL_MS 100
 
-typedef struct GNSSPump_config {
+typedef struct GNSSPumpConfig {
     unsigned int readIntervalMs;
     int (*parse)(char *in, GNSS_Data *out);
     int (*pump)(char *out);
-} GNSSPump_config;
+} GNSSPumpConfig;
 
 typedef struct GNSSPump {
-    GNSSPump_config cfg;
-    pthread_t thread;
+    GNSSPumpConfig cfg;
     _Atomic GNSS_Data currentData;
 } GNSSPump;
 
-int GNSSPump_init(GNSSPump_config cfg, GNSSPump **out);
+int GNSSPump_init(GNSSPumpConfig cfg, GNSSPump **out);
 int GNSSPump_destroy(GNSSPump *pump);
-int GNSSPump_start(GNSSPump *pump);
-int GNSSPump_stop(GNSSPump *pump);
+void* GNSSPump_pump(void* data);
+GNSS_Data GNSSPump_get_current(GNSSPump *p);
 
 #endif

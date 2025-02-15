@@ -9,9 +9,7 @@
 #include "dbg.h"
 #include "models.h"
 
-static void* threadFunc(void* data);
-
-int GNSSPump_init(GNSSPump_config cfg, GNSSPump **out)
+int GNSSPump_init(GNSSPumpConfig cfg, GNSSPump **out)
 {
     GNSSPump *raw = NULL;
 
@@ -25,7 +23,7 @@ int GNSSPump_init(GNSSPump_config cfg, GNSSPump **out)
 
     raw->cfg = cfg;
 
-    log_info("GNSS Pump initialized");
+    log_info("GNSSPump initialized");
 
     *out = raw;
 
@@ -47,40 +45,12 @@ int GNSSPump_destroy(GNSSPump *p)
 
     free(p);
 
-    log_info("GNSS Pump destroyed");
+    log_info("GNSSPump destroyed");
 
     return 0;
 }
 
-int GNSSPump_start(GNSSPump *p)
-{
-    check(p != NULL, "pump is not set up");
-    check(p->thread == 0, "pumping thread already running");
-
-    int rc = pthread_create(&p->thread, NULL, threadFunc, p);
-    check(rc == 0, "failed to create a thread: rc: %d", rc);
-
-    return 0;
-
-error:
-    return 1;
-}
-
-int GNSSPump_stop(GNSSPump *p)
-{
-    check(p != NULL, "pump is not set up");
-    check(p->thread != 0, "seems pumping thread is not running");
-    check(pthread_cancel(p->thread) == 0, "failed to cancel pumping thread");
-
-    p->thread = 0;
-
-    return 0;
-
-error:
-    return 1;
-}
-
-static void* threadFunc(void* data) {
+void* GNSSPump_pump(void* data) {
     GNSSPump *p = (GNSSPump*) data;
 
     char *rawData = NULL;
@@ -103,18 +73,7 @@ static void* threadFunc(void* data) {
     }
 }
 
-// GNSS_Data GNSSPump_get_current_data() {
-//     GNSS_Data tmp = atomic_load_explicit(&currentData, memory_order_relaxed);
-//     return tmp;
-// }
-
-// int GNSSPump_set_current_data(GNSS_Data new) {
-//     check(GNSSPump_validate_data(new) == 0, "new data is invalid");
-
-//     atomic_store_explicit(&currentData, new, memory_order_relaxed);
-
-//     return 0;
-
-// error:
-//     return 1;
-// }
+GNSS_Data GNSSPump_get_current(GNSSPump *p) {
+    GNSS_Data tmp = atomic_load_explicit(&p->currentData, memory_order_relaxed);
+    return tmp;
+}

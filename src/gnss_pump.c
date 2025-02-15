@@ -9,8 +9,6 @@
 #include "dbg.h"
 #include "models.h"
 
-static void* threadFunc(void* data);
-
 int GNSSPump_init(GNSSPumpConfig cfg, GNSSPump **out)
 {
     GNSSPump *raw = NULL;

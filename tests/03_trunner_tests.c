@@ -86,12 +86,16 @@ char *all_tests()
 
     mu_run_test(test_TRunner_init);
     mu_run_test(test_cfg_fields);
+
+#ifndef _DISABLE_LONG_TEST
     mu_run_test(test_TRunner_start);
     while (stop != 0) {
         debug("waiting for signal stop");
         sleep(1);
     }
     mu_run_test(test_TRunner_stop);
+#endif
+
     mu_run_test(test_TRunner_destroy);
 
     return NULL;

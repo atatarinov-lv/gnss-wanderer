@@ -3,12 +3,20 @@
 
 #include "models.h"
 
+#define MIN_MIXING_INTERVAL_MS 100
+
 typedef struct MixerConfig {
-    GNSS_Data (*get_GNSS_data)();
+    unsigned int mixIntervalMs;
+    GNSS_Data (*getGnssData)();
+    int (*validateGnssData)(GNSS_Data data);
 } MixerConfig;
 
 typedef struct Mixer {
     MixerConfig cfg;
 } Mixer;
+
+int Mixer_init(MixerConfig cfg, Mixer **out);
+int Mixer_destroy(Mixer *m);
+void* Mixer_mix(void* data);
 
 #endif

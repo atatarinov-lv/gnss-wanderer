@@ -1,8 +1,5 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include <stdatomic.h>
-#include <string.h>
-#include <pthread.h>
 #include <unistd.h>
 
 #include "gnss_pump.h"

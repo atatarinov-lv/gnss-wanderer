@@ -27,7 +27,7 @@ static void* mocked_func(void* arg)
     return NULL;
 }
 
-char *test_TRunner_init()
+char *test_init()
 {
     TRunnerConfig cfg = {
         .name = runnerName,
@@ -42,7 +42,7 @@ char *test_TRunner_init()
     return NULL;
 }
 
-char *test_TRunner_destroy()
+char *test_destroy()
 {
     mu_assert(TRunner_destroy(runner) == 0, "destroy failed");
 
@@ -84,7 +84,7 @@ char *all_tests()
 {
     mu_suite_start();
 
-    mu_run_test(test_TRunner_init);
+    mu_run_test(test_init);
     mu_run_test(test_cfg_fields);
 
 #ifndef _DISABLE_LONG_TEST
@@ -96,7 +96,7 @@ char *all_tests()
     mu_run_test(test_TRunner_stop);
 #endif
 
-    mu_run_test(test_TRunner_destroy);
+    mu_run_test(test_destroy);
 
     return NULL;
 }

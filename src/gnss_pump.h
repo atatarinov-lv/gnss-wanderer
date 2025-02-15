@@ -1,8 +1,6 @@
 #ifndef _gnss_pump
 #define _gnss_pump
 
-#include <pthread.h>
-
 #include "models.h"
 
 #define MIN_GNSS_PUMPING_INTERVAL_MS 100

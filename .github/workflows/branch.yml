@@ -12,5 +12,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install system dependencies
+        run: sudo apt-get install -y libatomic1
+
       - name: Build + Test
         run: make

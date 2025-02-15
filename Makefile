@@ -6,9 +6,9 @@ CFLAGS = $(M_CFLAGS) -O2 -rdynamic -DNDEBUG $(OPTFLAGS)
 LIBS = -ldl $(OPTLIBS)
 PREFIX ?= /usr/local
 
-MAIN=src/main.c
+MAIN=cmd/main.c
 
-SOURCES = $(filter-out $(MAIN), $(wildcard src/**/*c src/*.c))
+SOURCES = $(wildcard src/**/*c src/*.c)
 OBJECTS = $(patsubst %.c,%.o,$(SOURCES))
 
 TEST_SRC = $(wildcard tests/*_tests.c)

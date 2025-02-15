@@ -1,6 +1,5 @@
 #include <math.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "dbg.h"
 #include "models.h"

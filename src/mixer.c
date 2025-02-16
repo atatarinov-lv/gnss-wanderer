@@ -1,9 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "dbg.h"
+#include "models.h"
 #include "mixer.h"
+
+static void default_output_handler(GNSS_Data data);
 
 int Mixer_init(MixerConfig cfg, Mixer **out)
 {
@@ -13,10 +17,15 @@ int Mixer_init(MixerConfig cfg, Mixer **out)
     check(cfg.getGnssData != NULL, "function getGnssData must be set up");
     check(cfg.validateGnssData != NULL, "function validateGnssData must be set up");
 
+    if (cfg.outputHandler == NULL) {
+        cfg.outputHandler = default_output_handler;
+    }
+
     raw = calloc(1, sizeof(Mixer));
     check_mem(raw);
 
     raw->cfg = cfg;
+    raw->maxGnssDelay = (float)cfg.mixIntervalMs / 1000;
 
     log_info("Mixer initialized");
 
@@ -50,6 +59,7 @@ void* Mixer_mix(void* data) {
 
     GNSS_Data d;
     int rc;
+    float currentUnixMs;
 
     while (1) {
         usleep(p->cfg.mixIntervalMs * 1000);
@@ -62,9 +72,26 @@ void* Mixer_mix(void* data) {
             continue;
         }
 
-        printf(
-            "%d|%.6f|%.6f|%.6f|%.6f\n",
-            d.System, d.Lat, d.Long, d.Speed, d.Course
-        );
+        currentUnixMs = get_unix_seconds_without_date(NULL);
+        if (currentUnixMs == -1) {
+            log_warn("faild to get current unix mS");
+            continue;
+        }
+
+        debug("currentUnixMs: %.2f, gnss_UTCTimeMs: %.2f", currentUnixMs, d.UTCTimeMs);
+
+        if (currentUnixMs - d.UTCTimeMs > p->maxGnssDelay) {
+            log_warn("too long gnss delay");
+            continue;
+        }
+
+        p->cfg.outputHandler(d);
     }
 }
+
+static void default_output_handler(GNSS_Data data) {
+    printf(
+        "%d|%.6f|%.6f|%.6f|%.6f\n",
+            data.System, data.Lat, data.Long, data.Speed, data.Course
+    );
+};

@@ -23,4 +23,6 @@ int validate_gnss_data(GNSS_Data data);
 #define E_DATA_INVALID_LONGITUDE 3
 #define E_DATA_INVALID_LATITUDE 4
 
+float get_unix_seconds_without_date(struct timeval *toConvert);
+
 #endif

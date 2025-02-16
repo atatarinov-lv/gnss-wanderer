@@ -38,16 +38,19 @@ build:
 	@mkdir -p bin
 
 # The Unit Tests
-.PHONY: tests
-tests:
+.PHONY: build_tests
+build_tests:
 	for i in $(TESTS) ; do \
 		$(CC) $(CFLAGS) $(TEST_OPTFLAGS) -o $$i $$i.c $(TARGET) ;\
 	done
+
+.PHONY: tests
+tests: build_tests
 	sh ./tests/runtests.sh
 
 # The Cleaner
 clean:
-	rm -rf build $(OBJECTS) $(TESTS)
+	rm -rf build $(OBJECTS) $(TESTS) $(BIN_TARGET)
 	rm -f tests/tests.log
 	find . -name "*.gc" -exec rm {} \;
 	rm -rf `find . -name "*.dSYM" -print`

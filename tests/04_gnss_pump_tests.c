@@ -31,7 +31,7 @@ static int fake_parse (char *in, GNSS_Data *out)
     return 0;
 }
 
-static int fake_pump (char *out)
+static int fake_pump (char **out)
 {
     debug("a good mocked function pump");
     return 0;
@@ -57,7 +57,7 @@ char *test_init()
     mu_assert(GNSSPump_init(cfg, &pump) == 0, "should be OK");
 
     TRunnerConfig runnerCfg = {
-        .name = "gnss-reader",
+        .name = "gnss-pump",
         .func = GNSSPump_pump,
     };
 

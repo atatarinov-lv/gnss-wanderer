@@ -8,7 +8,7 @@
 typedef struct GNSSPumpConfig {
     unsigned int readIntervalMs;
     int (*parse)(char *in, GNSS_Data *out);
-    int (*pump)(char *out);
+    int (*pump)(char **out);
 } GNSSPumpConfig;
 
 typedef struct GNSSPump {

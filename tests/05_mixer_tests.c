@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#include "dbg.h"
 #include "minunit.h"
 #include "mixer.h"
 #include "models.h"
@@ -13,18 +14,24 @@ static TRunner *runner;
 
 static unsigned int mixIntervalMs = 999;
 
-static int counter = 0;
+static int counter = -1;
 static int stop = 1;
 
 static GNSS_Data mocked_get_gnss_data() {
     counter++;
+
+    float UTCTimeMs = counter;
+
+    if (counter % 4 == 0) {
+        UTCTimeMs = get_unix_seconds_without_date(NULL);
+    }
 
     GNSS_Data out = {
         .Lat = counter,
         .Long = counter,
         .Speed = counter,
         .Course = counter,
-        .UTCTimeMs = counter,
+        .UTCTimeMs = UTCTimeMs,
         .System = counter,
     };
 
@@ -39,12 +46,20 @@ static int mocker_validate_gnss_data(GNSS_Data data) {
     return counter % 2;
 }
 
+static void mocked_output_handler(GNSS_Data data) {
+    debug(
+        "%d|%.6f|%.6f|%.6f|%.6f\n",
+        data.System, data.Lat, data.Long, data.Speed, data.Course
+    );
+}
+
 char *test_init()
 {
     MixerConfig cfg = {
         .mixIntervalMs = MIN_MIXING_INTERVAL_MS - 1,
         .getGnssData = NULL,
         .validateGnssData = NULL,
+        .outputHandler = mocked_output_handler,
     };
 
     mu_assert(Mixer_init(cfg, &mixer) == 1, "invalid interval");

@@ -56,7 +56,7 @@ void* GNSSPump_pump(void* data) {
     while (1) {
         usleep(p->cfg.readIntervalMs * 1000);
 
-        if (p->cfg.pump(rawData) != 0) {
+        if (p->cfg.pump(&rawData) != 0) {
             log_err("failed to pump data");
             continue;
         }

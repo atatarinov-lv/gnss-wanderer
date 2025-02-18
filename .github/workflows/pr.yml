@@ -1,0 +1,17 @@
+name: PullRequestWorkflow
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  lint:
+    name: LintStage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check
+        run: make check

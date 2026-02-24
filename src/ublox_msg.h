@@ -1,4 +1,4 @@
-#ifdef UBLOX8
+#ifdef _UBLOX8
 
 static const char *ublox_disable_GLL = "PUBX,40,GLL,0,0,0,0,0,0";
 static const char *ublox_disable_GGA = "PUBX,40,GGA,0,0,0,0,0,0";

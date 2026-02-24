@@ -5,8 +5,6 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <libudev.h>
-
 #include "dbg.h"
 #include "models.h"
 #include "nmea.h"
@@ -15,7 +13,7 @@
 #include "mixer.h"
 #include "trunner.h"
 
-char* find_gnss_device_with_udev();
+char* find_gnss_device();
 
 static volatile sig_atomic_t keep_running = 1;
 
@@ -58,11 +56,11 @@ static void sig_handler(int _)
 
 int main(int argc, char *argv[])
 {
-	char *device_name = find_gnss_device_with_udev();
-	
+	char *device_name = find_gnss_device();
+
 	check(device_name != NULL, "can not detect GNSS device");
 	log_info("gonna use device: %s", device_name);
-	
+
 	UBloxIngressConfig ingressCfg = {
 		.portname = device_name
 	};
@@ -104,8 +102,6 @@ int main(int argc, char *argv[])
 
 	log_info("running...");
 
-	char *rawInput = NULL;
-
 	signal(SIGINT, sig_handler);
 	while (keep_running) {
 		sleep(1);
@@ -137,12 +133,13 @@ error:
 	return 1;
 }
 
+#if defined(_UBLOX8) && defined(_LINUX)
 
-#ifdef UBLOX8
+#include <libudev.h>
 
 #define UBLOX_VENDOR_ID "1546"
 
-char* find_gnss_device_with_udev() {
+char* find_gnss_device() {
 	char *device_name = NULL;
 
 	struct udev *udev = udev_new();
@@ -172,7 +169,7 @@ char* find_gnss_device_with_udev() {
 		struct udev_device *usb_parent = udev_device_get_parent_with_subsystem_devtype(tty_dev, "usb", "usb_device");
 		if (usb_parent) {
 			const char *vendor_id = udev_device_get_sysattr_value(usb_parent, "idVendor");
-			
+
 			if (vendor_id && strcasecmp(vendor_id, UBLOX_VENDOR_ID) == 0) {
 				const char *devnode = udev_device_get_devnode(tty_dev);
 
@@ -203,6 +200,134 @@ char* find_gnss_device_with_udev() {
 found:
 	udev_enumerate_unref(enumerate);
 	udev_unref(udev);
+
+	return device_name;
+}
+
+#elif defined(_UBLOX8) && defined(_MACOS)
+
+#include <IOKit/IOKitLib.h>
+#include <IOKit/serial/IOSerialKeys.h>
+#include <CoreFoundation/CoreFoundation.h>
+
+#define UBLOX_VENDOR_ID 0x1546
+
+char* find_gnss_device() {
+	char *device_name = NULL;
+	io_iterator_t iterator = 0;
+	io_service_t service = 0;
+	CFMutableDictionaryRef matching_dict = NULL;
+
+	// 1. Create a dictionary to match all serial ports
+	matching_dict = IOServiceMatching(kIOSerialBSDServiceValue);
+	if (!matching_dict) {
+		log_err("failed to create matching dictionary");
+		return NULL;
+	}
+
+	// 2. Get an iterator for all serial services
+	// kIOMainPortDefault is required for macOS 12+ (Fresh SDK)
+	kern_return_t kr = IOServiceGetMatchingServices(kIOMainPortDefault, matching_dict, &iterator);
+
+	// IOServiceGetMatchingServices consumes the reference to matching_dict on success.
+	// We only release it if the call failed.
+	if (kr != KERN_SUCCESS) {
+		log_err("failed to get matching services");
+		CFRelease(matching_dict);
+		return NULL;
+	}
+
+	// 3. Iterate over all serial ports
+	while ((service = IOIteratorNext(iterator))) {
+		io_registry_entry_t parent = 0;
+		io_registry_entry_t child = service;
+		bool is_ublox = false;
+
+		// 4. Walk up the registry tree to find the USB parent
+		while (IORegistryEntryGetParentEntry(child, kIOServicePlane, &parent) == KERN_SUCCESS) {
+			CFTypeRef vendor_id_ref = IORegistryEntryCreateCFProperty(
+				parent,
+				CFSTR("idVendor"),
+				kCFAllocatorDefault,
+				0
+			);
+
+			if (vendor_id_ref) {
+				// idVendor is provided as a CFNumber on macOS
+				if (CFGetTypeID(vendor_id_ref) == CFNumberGetTypeID()) {
+					int32_t vendor_id = 0;
+					CFNumberGetValue((CFNumberRef)vendor_id_ref, kCFNumberSInt32Type, &vendor_id);
+
+					if (vendor_id == UBLOX_VENDOR_ID) {
+						is_ublox = true;
+					}
+				}
+				CFRelease(vendor_id_ref);
+			}
+
+			// Release the child node we just traversed from.
+			// We do NOT release 'service' here because the outer loop handles it.
+			if (child != service) {
+				IOObjectRelease(child);
+			}
+
+			if (is_ublox) {
+				// Found the device. Release the current 'parent' reference
+				// because we are breaking out of the loop immediately.
+				IOObjectRelease(parent);
+				break;
+			}
+
+			// Move up the tree
+			child = parent;
+		}
+
+		// If we exited the loop naturally (no break), 'child' holds the topmost parent reached.
+		// Release it if it isn't the original service.
+		if (!is_ublox && child != service) {
+			IOObjectRelease(child);
+		}
+
+		if (is_ublox) {
+			// 5. Get the device path (IOCalloutDevice is typically /dev/cu.usbmodem...)
+			CFTypeRef dev_path_ref = IORegistryEntryCreateCFProperty(
+				service,
+				CFSTR(kIOCalloutDeviceKey),
+				kCFAllocatorDefault,
+				0
+			);
+
+			if (dev_path_ref && CFGetTypeID(dev_path_ref) == CFStringGetTypeID()) {
+				char path_buffer[1024];
+				if (CFStringGetCString((CFStringRef)dev_path_ref, path_buffer, sizeof(path_buffer), kCFStringEncodingUTF8)) {
+					debug("first ublox device: %s", path_buffer);
+
+					size_t len = strlen(path_buffer);
+					device_name = calloc(len + 1, 1);
+					check_mem(device_name);
+					memcpy(device_name, path_buffer, len);
+				}
+			}
+
+			if (dev_path_ref) CFRelease(dev_path_ref);
+		}
+
+		// Outer loop releases the current serial service
+		IOObjectRelease(service);
+
+		if (device_name != NULL) {
+			debug("device is found");
+			break;
+		}
+
+		continue;
+
+		error:
+			break;
+	}
+
+	IOObjectRelease(iterator);
+	// matching_dict was consumed by IOServiceGetMatchingServices, do not release here.
 
 	return device_name;
 }

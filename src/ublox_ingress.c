@@ -77,7 +77,7 @@ error:
 int UBloxIngress_write(UBloxIngress *ingress, const char *cmd) {
 	check(ingress != NULL, "ingress is NULL");
 	check(cmd != NULL, "command is NULL");
-	
+
 	int size = strlen(cmd);
 	check(size > 0, "size < 0");
 	check(size < cmd_buf_len - 10 , "size > %d", cmd_buf_len - 10);
@@ -99,7 +99,7 @@ static int set_interface_attribs(int fd, int speed)
 	struct termios tty;
 	check(tcgetattr(fd, &tty) == 0, "error from tcgetattr");
 
-	log_info("tty: initial c_iflag: %d", tty.c_iflag);
+	log_info("tty: initial c_iflag: %lu", tty.c_iflag);
 	tty.c_iflag &= ~IGNBRK;
 	tty.c_iflag &= ~BRKINT;
 	tty.c_iflag &= ~IGNPAR;
@@ -110,18 +110,22 @@ static int set_interface_attribs(int fd, int speed)
 	tty.c_iflag &= ~IGNCR;
 	tty.c_iflag &= ~ICRNL;
 	tty.c_iflag &= ~(IXON | IXOFF | IXANY);
+
+	#ifdef _LINUX
 	tty.c_iflag &= ~IUCLC;
+	#endif
+
 	tty.c_iflag &= ~IMAXBEL;
-	log_info("tty: tuned c_iflag: %d", tty.c_iflag);
+	log_info("tty: tuned c_iflag: %lu", tty.c_iflag);
 
-	log_info("tty: initial c_oflag: %d", tty.c_oflag);
+	log_info("tty: initial c_oflag: %lu", tty.c_oflag);
 	tty.c_oflag &= ~OPOST;
-	log_info("tty: tuned c_oflag: %d", tty.c_oflag);
+	log_info("tty: tuned c_oflag: %lu", tty.c_oflag);
 
-	log_info("tty: initial c_lflag: %d", tty.c_lflag);
+	log_info("tty: initial c_lflag: %lu", tty.c_lflag);
 	tty.c_lflag &= ~ISIG;
 	tty.c_lflag &= ~ICANON;
-	log_info("tty: tuned c_lflag: %d", tty.c_lflag);
+	log_info("tty: tuned c_lflag: %lu", tty.c_lflag);
 
 	cfsetospeed(&tty, speed);
 	cfsetispeed(&tty, speed);
@@ -147,7 +151,7 @@ static int set_up_messages(UBloxIngress *ingress) {
 		ublox_disable_GGA,
 	};
 
-	for (int i = 0; i < sizeof(cmds) / sizeof(cmds[0]); i++) {
+	for (unsigned long i = 0; i < sizeof(cmds) / sizeof(cmds[0]); i++) {
 		const char *cmd = cmds[i];
 		log_info("command: %s", cmd);
 		check(UBloxIngress_write(ingress, cmd) == 0, "failed to write cmd: #%s", cmds[i]);

@@ -1,11 +1,27 @@
 LIBRARY_NAME := gnss-wanderer
 CDMFTM := cmdfmt
 
-M_CFLAGS = -g -Wall -Wextra -Isrc -lm -latomic -ludev -DUBLOX8
+LIBS = -lm
+DEFINES = -D_UBLOX8
+
+PREFIX ?= /usr/local
+
+M_CFLAGS = -g -Wall -Wextra -Isrc $(DEFINES)
+
+UNAME_S := $(shell uname -s)
+
+ifeq ($(UNAME_S),Linux)
+	LIBS += -ludev -latomic
+	DEFINES += -D_LINUX
+else ifeq ($(UNAME_S),Darwin)
+	LIBS += -latomic_ops
+	DEFINES += -D_MACOS
+	M_CFLAGS += -L$(shell brew --prefix)/lib -framework IOKit -framework CoreFoundation
+else
+	$(error Unsupported OS: $(UNAME_S))
+endif
 
 CFLAGS = $(M_CFLAGS) -O2 -rdynamic -DNDEBUGVV $(OPTFLAGS)
-LIBS = -ldl $(OPTLIBS)
-PREFIX ?= /usr/local
 
 MAIN=cmd/main.c
 
@@ -20,7 +36,7 @@ SO_TARGET = $(patsubst %.a,%.so,$(TARGET))
 BIN_TARGET = bin/$(LIBRARY_NAME)
 
 # The Target Build
-all: $(TARGET) $(SO_TARGET) tests $(BIN_TARGET) $(CDMFTM)
+all: $(TARGET) $(SO_TARGET) $(BIN_TARGET) $(CDMFTM)
 
 dev: CFLAGS = $(M_CFLAGS) $(OPTFLAGS)
 dev: all
@@ -34,11 +50,11 @@ $(SO_TARGET): $(TARGET) $(OBJECTS)
 
 $(BIN_TARGET): CFLAGS = $(M_CFLAGS) $(OPTFLAGS)
 $(BIN_TARGET): $(SO_TARGET)
-	$(CC) $(CFLAGS) -o $@ $(MAIN) $(TARGET)
+	$(CC) $(CFLAGS) -o $@ $(MAIN) $(TARGET) $(LIBS)
 
 $(CDMFTM): CFLAGS = $(M_CFLAGS) $(OPTFLAGS)
 $(CDMFTM): $(TARGET)
-	$(CC) $(CFLAGS) -o bin/$@ cmd/$@.c $(TARGET)
+	$(CC) $(CFLAGS) -o bin/$@ cmd/$@.c $(TARGET) $(LIBS)
 
 build:
 	@mkdir -p build
@@ -46,9 +62,10 @@ build:
 
 # The Unit Tests
 .PHONY: build_tests
-build_tests:
+build_tests: CFLAGS = $(M_CFLAGS) $(OPTFLAGS)
+build_tests: $(TARGET)
 	for i in $(TESTS) ; do \
-		$(CC) $(CFLAGS) $(TEST_OPTFLAGS) -o $$i $$i.c $(TARGET) ;\
+		$(CC) $(CFLAGS) -o $$i $$i.c $(TARGET) $(LIBS);\
 	done
 
 .PHONY: tests
